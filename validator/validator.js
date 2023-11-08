@@ -1,5 +1,6 @@
 const { check, validationResult } = require("express-validator");
 const { StatusCodes } = require("http-status-codes");
+const Product = require("../Model/products/product_information")
 
 const validateSignUpRequest = [
     check("firstName").notEmpty().withMessage("First Name is required"),
@@ -33,7 +34,7 @@ const isRequestValidated = (req, res, next) => {
     next();
 };
 
-const isValidateCustomerQuery = [
+const isvalidatecustmoerquery = [
     check("fullName").notEmpty().withMessage("First Name is required"),
     check("email").notEmpty().withMessage("Email is required")
         .isEmail().withMessage("Valid Email required"),
@@ -73,7 +74,7 @@ const isadditionalinformation =[
     check("importer").notEmpty().withMessage("importer is required"),
     check("net_quantity").notEmpty().withMessage("net_quantity is required")
    ]
-const isOrderDetails =[
+const isorderdeatils =[
     check("houseNo").notEmpty().withMessage("House No is required"),
     check("streetName").notEmpty().withMessage("Street Name No is required"),
 
@@ -95,9 +96,9 @@ module.exports = {
     validateSignUpRequest,
     isRequestValidated,
     validateLogInRequest,
-    isValidateCustomerQuery,
+    isvalidatecustmoerquery,
     isproductcreate,
     isproductioninformation,
     isadditionalinformation,
-    isOrderDetails
+    isorderdeatils
 };

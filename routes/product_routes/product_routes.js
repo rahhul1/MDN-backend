@@ -1,10 +1,13 @@
 const router = require("express").Router();
+
 const {
   isRequestValidated,
   isproductcreate,
   isproductioninformation,
   isadditionalinformation,
-} = require("../validator/validator");
+} = require("../../validator/validator");
+
+
 const {
   createproducts,
   deatilsproduct,
@@ -12,8 +15,9 @@ const {
   deletebyidproduct,
   updatedeatils,
   updatebyimage,
-  deletebyimage,
+  deletebyimage
 } = require("../../controllers/products_controllers/products");
+
 const {
   productsinformation,
   deletebyidInfoproduct,
@@ -21,6 +25,7 @@ const {
   deatilsinfoproduct,
   updateinformationproduct,
 } = require("../../controllers/products_controllers/productinformation");
+
 const {
   addtionalinformations,
   deatilsaddtionproduct,
@@ -28,9 +33,6 @@ const {
   deletebyidaddtionproduct,
   updateaddtionnproduct,
 } = require("../../controllers/products_controllers/adtionalinformation");
-const {
-  allproductinformation,
-} = require("../../controllers/products_controllers/allproduct_information");
 
 const multer = require("multer");
 const path = require("path");
@@ -49,21 +51,32 @@ const storage = multer.diskStorage({
 // Initialize Multer with the storage configuration
 const upload = multer({ storage: storage });
 
-router.get("/", allProducts);
-router.get("/information-details", deatilsinfoproduct);
-router.get("/product-informationbyid/:id", getbyidinfoproduct);
-router.get("/aditional-details", deatilsaddtionproduct);
-router.get("/aditional-informationbyid/:id", getbyidadtionproduct);
-router.get("/all-production-information/:id", allproductinformation);
-router.get("/:id", getProduct);
-
 router.post("/create-product", upload.array("images", 20), createproducts);
+router.put("/update-deatils/:id",updatedeatils)
+router.put("/:id/images/:imageIndex",upload.single("images"),updatebyimage)
+router.get("/get-deatils", deatilsproduct);
+router.get("/get-deatils/:id", getbyidproduct);
+router.delete("/delete-product-id/:id", deletebyidproduct);
+router.delete("/:id/images/:imageIndex",upload.single("images"),deletebyimage)
+
+
+//Product Information
+
 router.post(
   "/product-information",
   isproductioninformation,
   isRequestValidated,
   productsinformation
+
 );
+router.get("/information-details", deatilsinfoproduct);
+router.get("/product-informationbyid/:id", getbyidinfoproduct);
+router.delete("/product-information", deletebyidInfoproduct);
+
+router.put("/product-update-information/:id", updateinformationproduct);
+
+// adtional information
+
 router.post(
   "/aditonal-information",
   isadditionalinformation,
@@ -71,22 +84,13 @@ router.post(
   addtionalinformations
 );
 
-router.put("/update-deatils/:id", updatedeatils);
-router.put(
-  "/:product-id/images/:imageIndex",
-  upload.single("imageUrls"),
-  updatebyimage
-);
-router.put("/product-update-information/:id", updateinformationproduct);
+router.get("/aditional-details", deatilsaddtionproduct);
+router.get("/aditional-informationbyid/:id", getbyidadtionproduct);
+router.delete("/aditional-information", deletebyidaddtionproduct);
 router.put("/aditional-update-information/:id", updateaddtionnproduct);
 
-router.delete("/delete-product-id/:id", deletebyidproduct);
-router.delete(
-  "/:product-id/images/:imageIndex",
-  upload.single("images"),
-  deletebyimage
-);
-router.delete("/product-information", deletebyidInfoproduct);
-router.delete("/aditional-information", deletebyidaddtionproduct);
+const {allproductinformation} = require('../../controllers/products_controllers/allproduct_information')
+
+router.get("/all-production-information/:id",allproductinformation)
 
 module.exports = router;

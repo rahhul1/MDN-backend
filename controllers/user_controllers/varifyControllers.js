@@ -1,9 +1,63 @@
 const { StatusCodes } = require("http-status-codes");
-const User = require("../model/user.model");
+const User = require("../../Model/usermodel/UserAuth");
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 const bcrypt = require("bcrypt");
-const Verification = require("../model/verification.model");
+const UserOtpVarification = require("../../Model/usermodel/UserOtpVarification");
 
+const signUp = async (req, res) => {
+  try {
+    const { firstName, lastName, userName, email, password, contactNumber } =
+      req.body;
+    if (
+      !firstName ||
+      !lastName ||
+      !userName ||
+      !email ||
+      !password ||
+      !contactNumber
+    ) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Please Provide Required Information",
+      });
+    }
+
+    const hash_password = await bcrypt.hash(password, 10);
+    const userData = {
+      firstName,
+      lastName,
+      userName,
+      email,
+      hash_password,
+      contactNumber,
+    };
+    // console.log("userData0001", userData)
+    const user = await User.findOne({ email });
+    if (user) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "User already registered",
+      });
+    } else {
+      User.create(userData).then((result, err) => {
+        if (!err) {
+          console.log("new userdata create ==>>", result);
+          sendMail(result, res);
+        } else {
+          res.json({
+            status: "Faild",
+            message: err.message,
+          });
+        }
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.json({
+      status: "Faild",
+      message: err.message,
+    });
+  }
+};
 
 const logIn = async (req, res) => {
   try {
@@ -68,60 +122,71 @@ const logIn = async (req, res) => {
   }
 };
 
-const register = async (req, res) => {
-  try {
-    const { firstName, lastName, userName, email, password, contactNumber } =
-      req.body;
-    if (
-      !firstName ||
-      !lastName ||
-      !userName ||
-      !email ||
-      !password ||
-      !contactNumber
-    ) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        message: "Please Provide Required Information",
-      });
-    }
+const verifyToken = (req, res, next) => {
+  let token = req.headers["x-access-token"];
 
-    const hash_password = await bcrypt.hash(password, 10);
-    const userData = {
-      firstName,
-      lastName,
-      userName,
-      email,
-      hash_password,
-      contactNumber,
-    };
-    // console.log("userData0001", userData)
-    const user = await User.findOne({ email });
-    if (user) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        message: "User already registered",
-      });
-    } else {
-      User.create(userData).then((result, err) => {
-        if (!err) {
-          console.log("new userdata create ==>>", result);
-          sendMail(result, res);
-        } else {
-          res.json({
-            status: "Faild",
-            message: err.message,
-          });
-        }
-      });
+  if (!token) {
+    return res.status(403).send({ message: "No token provided!" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res
+        .status(StatusCodes.UNAUTHORIZED)
+        .send({ message: "Unauthorized!" });
     }
-  } catch (err) {
-    console.log(err);
+    req.userId = decoded.id;
+    next();
+  });
+};
+
+// send otp
+const nodemailer = require("nodemailer");
+const transporter = nodemailer.createTransport({
+  host: "smtp.ethereal.email",
+  port: 587,
+  auth: {
+    user: "collin.kuhn@ethereal.email",
+    pass: "FJpftVMTgZcQq83318",
+  },
+});
+const sendMail = async ({ _id, email }, res) => {
+  try {
+    const refOTP = Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
+    const mailOptions = {
+      from: "sonia.hammes92@ethereal.email",
+      to: email,
+      subject: "Varification Of Email",
+      html: `<p style='font-size:1rem'>Hear is your otp <b>${refOTP}</b> for variy your email.</p>`,
+    };
+    // const hash_otp = bcrypt.hash(refOTP, 8);
+    const newOtpVarification = new UserOtpVarification({
+      userId: _id,
+      otp: refOTP,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 600000,
+    });
+    const saveData = await newOtpVarification.save();
+    console.log("save=======Data", saveData);
+    const mailInfo = await transporter.sendMail(mailOptions);
+    console.log("Message sent: %s", mailInfo.messageId);
     res.json({
-      status: "Faild",
+      status: "PENDING",
+      message: "OTP varification is pending, check your inbox",
+      data: {
+        userId: _id,
+        email,
+      },
+    });
+  } catch (err) {
+    res.json({
+      status: "Failed",
       message: err.message,
     });
   }
 };
 
+//verify user otp
 const verifyOTP = async (req, res) => {
   try {
     const { userId, otp } = req.body;
@@ -167,6 +232,8 @@ const verifyOTP = async (req, res) => {
   }
 };
 
+// resendOTP
+
 const resendOTP = async (req, res) => {
   try {
     const { userId, email } = req.body;
@@ -184,7 +251,26 @@ const resendOTP = async (req, res) => {
   }
 };
 
-const changePassword = async (req,res)=>{
+const getUser_all = async (req, res) => {
+  try {
+    const allUser = await User.find();
+    res.json(allUser);
+  } catch (err) {
+    res.json({ message: err });
+  }
+};
+
+// delete item
+const user_delete = async (req, res) => {
+  try {
+    const removeUser = await User.findByIdAndDelete(req.params.id);
+    res.json(removeUser);
+  } catch (error) {
+    res.json({ message: error });
+  }
+};
+
+const changepassword = async (req,res)=>{
   const { id } = req.params;
   const { oldPassword, newPassword  } = req.body;
   try {
@@ -221,7 +307,7 @@ const changePassword = async (req,res)=>{
 
 }
 
-const forgotPassword = async (req,res)=>{
+const updateuser = async (req,res)=>{
   try {
     const userId = req.params.id;
     const updateData = req.body;
@@ -247,12 +333,15 @@ const forgotPassword = async (req,res)=>{
     res.status(500).json({ message: 'Server error' });
   }
 }
-
 module.exports = {
+  signUp,
   logIn,
-  register,
+  getUser_all,
+  verifyToken,
+  user_delete,
+  sendMail,
   verifyOTP,
   resendOTP,
-  changePassword,
-  forgotPassword
+  changepassword,
+  updateuser
 };

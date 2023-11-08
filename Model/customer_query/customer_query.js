@@ -9,6 +9,7 @@ const querySchema = new mongoose.Schema(
       min: 3,
       max: 20,
     },
+
     email: {
       type: String,
       require: true,

@@ -121,6 +121,7 @@ const updatedeatils =async (req, res) => {
   }
 const updatebyimage =  async (req, res) => {
   try {
+    console.log("dddjjdkjdddd", req.file);
     const productId = req.params.id;
     const imageIndex = req.params.imageIndex;
     const { filename } = req.file;
@@ -179,5 +180,6 @@ module.exports = {
   getbyidproduct,
   deletebyidproduct,
   updatedeatils,
-  updatebyimage,deletebyimage
+  updatebyimage,
+  deletebyimage
 };
